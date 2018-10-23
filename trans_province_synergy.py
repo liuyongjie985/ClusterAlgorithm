@@ -74,18 +74,19 @@ def get_content_w2v(content_list):
 
 
 # 创建文本的词频字典
-def create_looktable(sents):
+def create_looktable(sents, standard):
     vocab = {}
     new_sentence_list = []
     for line in sents:
         try:
-            word_list = list(jieba.cut(line))
-            new_sentence_list.append(word_list)
-            for word in word_list:
-                if word in vocab:
-                    vocab[word] += 1
-                else:
-                    vocab[word] = 1
+            if line in standard:
+                word_list = list(jieba.cut(line))
+                new_sentence_list.append(word_list)
+                for word in word_list:
+                    if word in vocab:
+                        vocab[word] += 1
+                    else:
+                        vocab[word] = 1
         except:
             continue
     return vocab, new_sentence_list
@@ -218,13 +219,25 @@ def get_similarity_cluster(root, data_vec, cluster_max, cluster_min, threshold):
 
 
 # wbname==即文件名称，sheetname==工作表名称，可以为空，若为空默认第一个工作表
-def readwb(wbname, sheetname):
+def readwb(wbname):
     dataset = []
     workbook = xlrd.open_workbook(wbname)
     table = workbook.sheets()[0]
     for row in range(table.nrows):
         dataset.append(table.row_values(row)[14])
     return dataset
+
+
+def getStandardQuestion(name):
+    my_dict = {}
+    f = open(name, "r")
+    while 1:
+        lines = f.readlines(100000)
+        if not lines:
+            break
+        for line in lines:
+            my_dict[line] = 1
+    return my_dict
 
 
 if __name__ == '__main__':
@@ -241,7 +254,7 @@ if __name__ == '__main__':
     #         fr.close()
     print("open data")
     # data = readwb("data/7-9月北京应答原始交互日志/7月-中国移动10086微信.xlsx", "智能应答日志交互明细表")
-    data = readwb("data/7-9月北京应答原始交互日志/测试.xlsx", "智能应答日志交互明细表")
+    data = readwb("data/7-9月北京应答原始交互日志/测试.xlsx")
     print("data loaded")
 
     print("loading w2v......")
@@ -251,14 +264,20 @@ if __name__ == '__main__':
     vac = w2v.vocab
     print("load w2v done...")
 
+    print("load standardquestion begin...")
+
+    standard = getStandardQuestion("standardQuestion.txt")
+
+    print("load standardquestion done...")
+
     print("read customer done ....")
     # data = data_process(sents, strategypath)
     # print("trans w2v begin ....")
     # data_vec,data_content = get_content_w2v(data)
     # print("trans w2v done .....")
     print("trans sentencevec begin ....")
-    lookable, newdata = create_looktable(data)
-    sentence_vecs = new_sentence_to_vec(newdata, 300, lookable)
+    lookable, newdata = create_looktable(data, standard)
+    sentence_vecs = new_sentence_to_vec(newdata, 300)
     print("trans sentencevec done .....")
     print("cluster begin ....")
     # get_similarity_cluster("cluster/", data_content, data_vec, 200,20, 0.9)
